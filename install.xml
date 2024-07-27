@@ -1,0 +1,1008 @@
+<modification>
+	<name>Speedy Shipping</name>
+	<code>extensa_speedy</code>
+	<version>4.0.7 for OpenCart 3.0.x </version>
+	<author>Extensa Web Development</author>
+	<link>http://extensadev.com</link>
+
+	<file path="catalog/view/theme/*/template/checkout/shipping_method.twig">
+		<operation>
+			<search><![CDATA[<p><strong>{{ text_comments }}</strong></p>]]></search>
+			<add position="before"><![CDATA[
+<div id="speedy_container"></div>
+			]]></add>
+		</operation>
+		<operation>
+			<search><![CDATA[id="button-shipping-method"]]></search>
+			<add position="after" offset="2"><![CDATA[
+<script type="text/javascript"><!--
+var speedy_loaded = false;
+
+$(document).ready(function() {
+	if ($('[name="shipping_method"][value^="speedy."]:checked').length) {
+		speedy($('[name="shipping_method"][value^="speedy."]:checked').prop('value'));
+	} else {
+		{% if speedy_active %}
+			speedy('speedy');
+		{% endif %}
+	}
+
+	$('[name="shipping_method"]').not('[value^="speedy."]').click(function() {
+		$('#speedy_container').hide();
+	});
+
+	$('[name="shipping_method"][value^="speedy."]').click(function() {
+		speedy($(this).prop('value'));
+	});
+});
+
+function speedy(speedy_value) {
+	var speedy_has_fixed_time = {% if speedy_fixed_time %}{{ speedy_fixed_time }}{% else %}false{% endif %};
+
+	if (speedy_loaded) {
+		$('#speedy_container').show();
+
+		if (speedy_has_fixed_time) {
+			$('#speedy_fixed_time_cb').removeAttr('disabled');
+		} else {
+			$('#speedy_fixed_time_cb').prop('disabled', 'disabled');
+			$('#speedy_fixed_time_cb').prop('checked', false);
+			$('#speedy_fixed_time_hour').prop('disabled', 'disabled');
+			$('#speedy_fixed_time_min').prop('disabled', 'disabled');
+		}
+	} else {
+		$.ajax({
+			url: 'index.php?route=extension/shipping/speedy',
+			dataType: 'json',
+			success: function(data) {
+				if (data) {
+					if (data.redirect) {
+						location = data.redirect;
+					} else {
+						$('#speedy_container').html(data.html);
+
+						$('#speedy_cod_yes').click(function() {
+							$('#speedy_cod').prop('checked', true);
+							$('#speedy_cod').parent().parent().show();
+							$('[name="payment_method"][value!="speedy_cod"]').parent().parent().hide();
+						});
+
+						$('#speedy_cod_no').click(function() {
+							$('#speedy_cod').prop('checked', false);
+							$('#speedy_cod').parent().parent().hide();
+							$('[name="payment_method"][value!="speedy_cod"]').parent().parent().show();
+						});
+
+						if ($('#speedy_cod_yes:checked').length) {
+							$('#speedy_cod_yes').click();
+						} else if ($('#speedy_cod_no:checked').length) {
+							$('#speedy_cod_no').click();
+						}
+
+						if (speedy_has_fixed_time) {
+							$('#speedy_fixed_time_cb').removeAttr('disabled');
+						} else {
+							if ($('#speedy_fixed_time_cb:checked').length) {
+								alert('{{ error_fixed_time2 }}');
+							}
+
+							$('#speedy_fixed_time_cb').prop('disabled', 'disabled');
+							$('#speedy_fixed_time_cb').prop('checked', false);
+							$('#speedy_fixed_time_hour').prop('disabled', 'disabled');
+							$('#speedy_fixed_time_min').prop('disabled', 'disabled');
+						}
+
+						speedy_loaded = true;
+					}
+				}
+			},
+			error: function(xhr, ajaxOptions, thrownError) {
+				//alert(thrownError + "\r\n" + xhr.statusText + "\r\n" + xhr.responseText);
+			}
+		});
+	}
+}
+//--></script>
+			]]></add>
+		</operation>
+	</file>
+
+	<file path="catalog/controller/account/logout.php">
+		<operation>
+			<search><![CDATA[unset($this->session->data['order_id']);]]></search>
+			<add position="after"><![CDATA[
+unset($this->session->data['speedy']);
+			]]></add>
+		</operation>
+	</file>
+
+	<file path="catalog/controller/checkout/confirm.php">
+		<operation>
+			<search><![CDATA[$order_data['shipping_firstname'] = '';]]></search>
+			<add position="before" offset="1"><![CDATA[
+if (isset($this->session->data['shipping_method']) && strpos($this->session->data['shipping_method']['code'], 'speedy.') !== false) {
+	$this->load->language('extension/shipping/speedy');
+	$this->load->library('speedy');
+
+	$speedy_receiver_address = array();
+
+		if (!empty($this->session->data['speedy']['to_office'])) {
+			if (!$this->session->data['speedy']['to_office']) {
+				if (isset($this->session->data['speedy']['quarter']) && $this->session->data['speedy']['quarter']) {
+					$speedy_receiver_address[] = $this->session->data['speedy']['quarter'];
+			}
+		}
+
+		if (isset($this->session->data['speedy']['street']) && $this->session->data['speedy']['street']) {
+			$speedy_receiver_address[] = $this->session->data['speedy']['street'];
+		}
+
+		if (isset($this->session->data['speedy']['street_no']) && $this->session->data['speedy']['street_no']) {
+			$speedy_receiver_address[] = $this->language->get('text_street_no') . ' ' . $this->session->data['speedy']['street_no'];
+		}
+
+		if (isset($this->session->data['speedy']['block_no']) && $this->session->data['speedy']['block_no']) {
+			$speedy_receiver_address[] = $this->language->get('text_block_no') . ' ' . $this->session->data['speedy']['block_no'];
+		}
+
+		if (isset($this->session->data['speedy']['entrance_no']) && $this->session->data['speedy']['entrance_no']) {
+			$speedy_receiver_address[] = $this->language->get('text_entrance_no') . ' ' . $this->session->data['speedy']['entrance_no'];
+		}
+
+		if (isset($this->session->data['speedy']['floor_no']) && $this->session->data['speedy']['floor_no']) {
+			$speedy_receiver_address[] = $this->language->get('text_floor_no') . ' ' . $this->session->data['speedy']['floor_no'];
+		}
+
+		if (isset($this->session->data['speedy']['apartment_no']) && $this->session->data['speedy']['apartment_no']) {
+			$speedy_receiver_address[] = $this->language->get('text_apartment_no') . ' ' . $this->session->data['speedy']['apartment_no'];
+		}
+	} else {
+		$lang = ($this->session->data['speedy']['abroad']) ? 'en' : $this->language->get('code');
+		$speedy_offices = $this->speedy->getOffices(null, $this->session->data['speedy']['city_id'], $lang, $this->session->data['speedy']['country_id']);
+
+		foreach ($speedy_offices as $speedy_office) {
+			if ($speedy_office['id'] == (int)$this->session->data['speedy']['office_id']) {
+				$speedy_receiver_address[] = $speedy_office['label'];
+			}
+		}
+	}
+
+	if (isset($this->session->data['speedy']['note']) && $this->session->data['speedy']['note']) {
+		$speedy_receiver_address[] = $this->language->get('text_note') . ' ' . $this->session->data['speedy']['note'];
+	}
+
+	if (isset($this->session->data['speedy']['address_1']) && $this->session->data['speedy']['address_1']) {
+		$speedy_receiver_address[] = $this->session->data['speedy']['address_1'];
+	}
+
+	if (!empty($speedy_receiver_address)) {
+		$order_data['shipping_address_1'] = implode(', ', $speedy_receiver_address);
+	}
+
+	if (!empty($this->session->data['speedy']['address_2']) && !empty($this->session->data['speedy']['abroad'])) {
+		$order_data['shipping_address_2'] = $this->session->data['speedy']['address_2'];
+	} else {
+		$order_data['shipping_address_2'] = '';
+	}
+
+	if (!empty($this->session->data['speedy']['state']) && !empty($this->session->data['speedy']['abroad'])) {
+		$order_data['shipping_zone'] = $this->session->data['speedy']['state'];
+	} else {
+		$order_data['shipping_zone'] = '';
+	}
+
+	$speedy_city = explode(',', $this->session->data['speedy']['city']);
+	$order_data['shipping_city'] = $speedy_city[0];
+	$order_data['shipping_postcode'] = $this->session->data['speedy']['postcode'];
+}
+			]]></add>
+		</operation>
+		<operation>
+			<search><![CDATA[$this->session->data['order_id'] = $this->model_checkout_order->addOrder($order_data);]]></search>
+			<add position="after"><![CDATA[
+if (isset($this->session->data['shipping_method']) && strpos($this->session->data['shipping_method']['code'], 'speedy.') !== false) {
+	$shipping = explode('.', $this->session->data['shipping_method']['code']);
+	$this->session->data['speedy']['shipping_method_id'] = $shipping[1];
+	$this->session->data['speedy']['shipping_method_cost'] = $this->session->data['shipping_method']['cost'];
+	$this->session->data['speedy']['shipping_method_title'] = $this->session->data['shipping_method']['title'];
+
+	$this->load->model('extension/shipping/speedy');
+	$this->model_extension_shipping_speedy->addOrder($this->session->data['order_id'], $this->session->data['speedy']);
+}
+			]]></add>
+		</operation>
+		<operation>
+			<search><![CDATA[
+			$data['payment']
+			]]></search>
+			<add position="before"><![CDATA[
+if ($this->config->get('shipping_speedy_invoice_courier_sevice_as_text') && (isset($this->session->data['speedy']) && !isset($this->session->data['speedy']['cod']) || !$this->session->data['speedy']['cod'])) {
+	$shouldSubstractFromTotal = false;
+	$shippingAmount = 0;
+	$allowed_pricings = array(
+		'calculator',
+		'free',
+		'calculator_fixed'
+	);
+
+	foreach ($order_data['totals'] as $total) {
+		if ($total['code'] == 'shipping' && (strpos($total['title'], 'Speedy') !== false || strpos($total['title'], 'Спиди') !== false)) {
+			if (in_array($this->config->get('shipping_speedy_pricing'), $allowed_pricings)) {
+				$this->load->language('extension/shipping/speedy');
+
+				$shippingAmount = $total['value'];
+				if ($this->config->get('shipping_speedy_pricing') == 'free') {
+					$delta = 0.0001;
+
+					if (abs($shippingAmount - 0.0000) > $delta) {
+						foreach ($data['totals'] as &$data_total) {
+							if ($data_total['title'] == $total['title']) {
+								$data_total['title'] = $total['title'] . '<br />(' . $data_total['text'] . $this->language->get('due_on_delivery') . ')';
+								$data_total['text'] = $this->currency->format(0.0000, $this->session->data['currency'], $this->currency->getValue($this->session->data['currency']));
+								$shouldSubstractFromTotal = true;
+								continue;
+							}
+						}
+					}
+				} else {
+					foreach ($data['totals'] as &$data_total) {
+						if ($data_total['title'] == $total['title']) {
+							$data_total['title'] = $total['title'] . '<br />(' . $data_total['text'] . $this->language->get('due_on_delivery') . ')';
+							$data_total['text'] = $this->currency->format(0.0000, $this->session->data['currency'], $this->currency->getValue($this->session->data['currency']));
+							$shouldSubstractFromTotal = true;
+							continue;
+						}
+					}
+				}
+			}
+		}
+	}
+
+	if ($shouldSubstractFromTotal) {
+		foreach ($order_data['totals'] as $total) {
+			if ($total['code'] == 'total') {
+				foreach ($data['totals'] as &$data_total) {
+					if ($data_total['title'] == $total['title']) {
+						$total_value = $total['value'] - $shippingAmount;
+						$data_total['text'] = $this->currency->format($total_value, $this->session->data['currency'], $this->currency->getValue($this->session->data['currency']));
+					}
+				}
+			}
+		}
+	}
+}
+			]]></add>
+		</operation>
+	</file>
+
+	<file path="catalog/controller/checkout/shipping_method.php">
+		<operation>
+			<search><![CDATA[$this->response->setOutput($this->load->view('checkout/shipping_method', $data));]]></search>
+			<add position="before"><![CDATA[
+			$this->load->language('extension/shipping/speedy');
+
+			$data['speedy_fixed_time'] = $this->config->get('shipping_speedy_fixed_time');
+			$data['speedy_active'] = $this->config->get('shipping_speedy_status');
+			]]></add>
+		</operation>
+	</file>
+
+	<file path="catalog/controller/checkout/payment_method.php">
+		<operation>
+			<search><![CDATA[if (isset($this->session->data['payment_address'])) {]]></search>
+			<add position="replace"><![CDATA[
+if (isset($this->session->data['payment_address']) || isset($this->session->data['speedy'])) {
+			]]></add>
+		</operation>
+		<operation>
+			<search><![CDATA[if ($method) {]]></search>
+			<add position="after"><![CDATA[
+if ($method && ($method['code'] != 'speedy_cod' || ($this->cart->hasShipping() && $method['code'] == 'speedy_cod')) && (!isset($this->session->data['shipping_method']) || strpos($this->session->data['shipping_method']['code'], 'speedy.') !== false && $result['code'] == 'speedy_cod' && isset($this->session->data['speedy']['cod']) && $this->session->data['speedy']['cod'] || strpos($this->session->data['shipping_method']['code'], 'speedy.') !== false && $result['code'] != 'speedy_cod' && (!isset($this->session->data['speedy']['cod']) || !$this->session->data['speedy']['cod']) || strpos($this->session->data['shipping_method']['code'], 'speedy.') === false && $result['code'] != 'speedy_cod')) {
+			]]></add>
+		</operation>
+		<operation>
+			<search><![CDATA[foreach ($method_data as $key => $value) {]]></search>
+			<add position="before" offset="4"><![CDATA[}]]></add>
+		</operation>
+	</file>
+
+	<file path="catalog/controller/checkout/success.php">
+		<operation>
+			<search><![CDATA[unset($this->session->data['order_id']);]]></search>
+			<add position="after"><![CDATA[
+unset($this->session->data['speedy']);
+			]]></add>
+		</operation>
+	</file>
+
+	<file path="catalog/model/account/address.php">
+		<operation>
+			<search><![CDATA[public function editAddress($address_id, $data) {]]></search>
+			<add position="after"><![CDATA[
+				$this->db->query("DELETE FROM " . DB_PREFIX . "speedy_address WHERE address_id = '" . (int)$address_id . "' AND customer_id = '" . (int)$this->customer->getId() . "'");
+			]]></add>
+		</operation>
+		<operation>
+			<search><![CDATA[public function deleteAddress($address_id) {]]></search>
+			<add position="after"><![CDATA[
+$this->db->query("DELETE FROM " . DB_PREFIX . "speedy_address WHERE address_id = '" . (int)$address_id . "' AND customer_id = '" . (int)$this->customer->getId() . "'");
+			]]></add>
+		</operation>
+	</file>
+
+	<file path="catalog/controller/api/shipping.php">
+		<operation>
+			<search index="0"><![CDATA[$json['shipping_methods'] = array();]]></search>
+			<add position="before" offset="2"><![CDATA[
+if (isset($this->request->get['speedy_order_id_api'])) {
+	$this->load->model('extension/shipping/speedy');
+
+	$speedy_order = $this->model_extension_shipping_speedy->getOrder($this->request->get['speedy_order_id_api']);
+
+	if ($speedy_order) {
+		$this->session->data['speedy'] = unserialize($speedy_order['data']);
+	}
+}
+			]]></add>
+		</operation>
+	</file>
+
+	<file path="catalog/controller/api/order.php">
+		<operation>
+			<search><![CDATA[$this->model_checkout_order->editOrder($order_id, $order_data);]]></search>
+			<add position="after"><![CDATA[
+if (isset($this->session->data['shipping_method']) && strpos($this->session->data['shipping_method']['code'], 'speedy.') !== false) {
+	if (isset($this->session->data['speedy'])) {
+
+		$shipping = explode('.', $this->session->data['shipping_method']['code']);
+		$this->session->data['speedy']['shipping_method_id'] = $shipping[1];
+		$this->session->data['speedy']['shipping_method_cost'] = $this->session->data['shipping_method']['cost'];
+		$this->session->data['speedy']['total'] = $order_data['total'] - $this->session->data['speedy']['shipping_method_cost'];
+		$this->session->data['speedy']['totalNoShipping'] = $this->session->data['speedy']['total'];
+
+		$this->load->model('extension/shipping/speedy');
+		$this->model_extension_shipping_speedy->editOrder($order_id, $this->session->data['speedy']);
+	}
+}
+			]]></add>
+		</operation>
+		<operation>
+			<search><![CDATA[if (!$json) {]]></search>
+			<add position="before"><![CDATA[
+if (strpos($this->request->post['shipping_method'], 'speedy.') === false && $this->request->post['payment_method'] == 'speedy_cod') {
+	$this->load->language('extension/shipping/speedy');
+
+	$json['error'] = $this->language->get('error_speedy_cash_on_delivery');
+}
+			]]></add>
+		</operation>
+	</file>
+
+	<file path="admin/controller/common/column_left.php">
+		<operation error="skip">
+			<search><![CDATA[if ($this->user->hasPermission('access', 'sale/recurring')) {]]></search>
+			<add position="before"><![CDATA[
+				$this->load->language('extension/sale/speedy');
+
+				$sale[] = array(
+					'name'     => $this->language->get('text_speedy'),
+					'href'     => $this->url->link('extension/sale/speedy', 'user_token=' . $this->session->data['user_token'], true),
+					'children' => array()
+				);
+			]]></add>
+		</operation>
+	</file>
+
+	<file path="admin/controller/sale/order.php">
+		<operation error="skip">
+			<search><![CDATA[$results = $this->model_sale_order->getOrders($filter_data);]]></search>
+			<add position="after"><![CDATA[
+$this->load->library('speedy');
+
+$this->load->language('extension/sale/speedy');
+
+$this->load->model('extension/sale/speedy');
+
+$bol = array();
+
+foreach ($results as $result) {
+	$bol_address[$result['order_id']] = '';
+
+	if (strpos($result['shipping_code'], 'speedy.') !== false) {
+		$speedy_order = $this->model_extension_sale_speedy->getOrder($result['order_id']);
+
+		if ($speedy_order) {
+			if ($speedy_order['bol_id']) {
+				if ($this->config->get('shipping_speedy_order_status_update')) {
+					$this->model_extension_sale_speedy->getDeliveryInfo($speedy_order['bol_id'], $speedy_order['order_id']);
+				}
+
+				$bol[$result['order_id']][] = array(
+					'text'   => $speedy_order['bol_id'],
+					'href'   => HTTPS_SERVER . 'index.php?route=extension/sale/speedy/printPDF&user_token=' . (isset($this->session->data['user_token']) ? $this->session->data['user_token'] : '') . '&order_id=' . $result['order_id'] . $url,
+					'target' => '_blank'
+				);
+
+				if ($this->speedy->checkReturnVoucherRequested($speedy_order['bol_id'])) {
+					$bol[$result['order_id']][] = array(
+						'text'   => $this->language->get('text_print_return_voucher'),
+						'href'   => HTTPS_SERVER . 'index.php?route=extension/sale/speedy/printReturnVoucher&user_token=' . (isset($this->session->data['user_token']) ? $this->session->data['user_token'] : '') . '&order_id=' . $result['order_id'] . $url,
+						'target' => '_blank'
+					);
+				}
+			} else {
+				$bol[$result['order_id']][] = array(
+					'text' => $this->language->get('text_create_bol'),
+					'href' => HTTPS_SERVER . 'index.php?route=extension/sale/speedy/create&user_token=' . (isset($this->session->data['user_token']) ? $this->session->data['user_token'] : '') . '&order_id=' . $result['order_id'] . $url
+				);
+			}
+
+			$speedy_order_data = unserialize($speedy_order['data']);
+
+			if (!empty($speedy_order_data['to_office']) && !empty($speedy_order_data['office_id'])) {
+				$bol_address[$result['order_id']] = $this->language->get('text_pickup_from_office') . '<br/> ';
+
+				if (!empty($speedy_order_data['office_name'])) {
+					$bol_address[$result['order_id']] .= $speedy_order_data['office_name'];
+				} else {
+					$office = $this->speedy->getOfficeById($speedy_order_data['office_id'], $speedy_order_data['city_id']);
+
+					if ($office) {
+						$bol_address[$result['order_id']] .= $office['address']['fullAddressString'];
+					}
+				}
+			} else {
+				$bol_address[$result['order_id']] = $this->language->get('text_delivery_to_address') . '<br/> ';
+				$bol_address[$result['order_id']] .= !empty($speedy_order_data['country'])      ? $speedy_order_data['country']      . ', ' : '';
+				$bol_address[$result['order_id']] .= !empty($speedy_order_data['state'])        ? $speedy_order_data['state']        . ', ' : '';
+				$bol_address[$result['order_id']] .= !empty($speedy_order_data['city'])         ? $speedy_order_data['city']         . ', ' : '';
+				$bol_address[$result['order_id']] .= !empty($speedy_order_data['postcode'])     ? $speedy_order_data['postcode']     . ', ' : '';
+				$bol_address[$result['order_id']] .= !empty($speedy_order_data['quarter'])      ? $speedy_order_data['quarter']      . ', ' : '';
+				$bol_address[$result['order_id']] .= !empty($speedy_order_data['street'])       ? $speedy_order_data['street']       . ', ' : '';
+				$bol_address[$result['order_id']] .= !empty($speedy_order_data['street_no'])    ? $speedy_order_data['street_no']    . ', ' : '';
+				$bol_address[$result['order_id']] .= !empty($speedy_order_data['block_no'])     ? $speedy_order_data['block_no']     . ', ' : '';
+				$bol_address[$result['order_id']] .= !empty($speedy_order_data['entrance_no'])  ? $speedy_order_data['entrance_no']  . ', ' : '';
+				$bol_address[$result['order_id']] .= !empty($speedy_order_data['floor_no'])     ? $speedy_order_data['floor_no']     . ', ' : '';
+				$bol_address[$result['order_id']] .= !empty($speedy_order_data['apartment_no']) ? $speedy_order_data['apartment_no'] . ', ' : '';
+				$bol_address[$result['order_id']] .= !empty($speedy_order_data['note'])         ? $speedy_order_data['note']         . '<br/> ' : '';
+			}
+		}
+	}
+}
+
+$results = $this->model_sale_order->getOrders($filter_data);
+
+			]]></add>
+		</operation>
+		<operation>
+			<search><![CDATA['shipping_code' => $result['shipping_code'],]]></search>
+			<add position="after"><![CDATA[
+'bol' => isset($bol[$result['order_id']]) ? $bol[$result['order_id']] : array(),
+'bol_address' => isset($bol_address[$result['order_id']]) ? $bol_address[$result['order_id']] : '',
+			]]></add>
+		</operation>
+		<operation>
+			<search><![CDATA[$data['header'] = $this->load->controller('common/header');]]></search>
+			<add position="before"><![CDATA[
+$this->load->language('extension/sale/speedy');
+
+if (!$this->config->get('shipping_speedy_from_office')) {
+	$data['speedy_courier'] = $this->url->link('extension/sale/speedy/courier', 'user_token=' . $this->session->data['user_token'], true);
+} else {
+	$data['speedy_courier'] = false;
+}
+			]]></add>
+		</operation>
+		<operation error="skip">
+			<search>
+				<![CDATA[
+$data['total'] = $this->currency->format($order_info['total'], $order_info['currency_code'], $order_info['currency_value']);
+					]]>
+				</search>
+				<add position="after"><![CDATA[
+if ($this->config->get('shipping_speedy_invoice_courier_sevice_as_text')) {
+	if (strpos($data['shipping_method'], 'Speedy') !== false || strpos($data['shipping_method'], 'Спиди') !== false) {
+		$isSpeedyShipment = true;
+		$speedyShouldSubstractFromTotal = false;
+		$speedyShippingAmount = 0;
+
+		$query = $this->db->query("SELECT data FROM " . DB_PREFIX . "speedy_order WHERE order_id = '" . (int)$order_id . "'");
+		$speedyData = null;
+
+		if (isset($query->row['data'])) {
+			$speedyData = unserialize($query->row['data']);
+			$speedyShippingAmount = $speedyData['shipping_method_cost'];
+		}
+
+		if (isset($speedyData) && !is_null($speedyData)) {
+			if (array_key_exists('price_gen_method', $speedyData) && isset($speedyData['price_gen_method']) && (isset($speedyData['cod']) && !$speedyData['cod'])) {
+				$allowed_pricings = array(
+					'calculator',
+					'free',
+					'calculator_fixed'
+				);
+
+				if (in_array($speedyData['price_gen_method'], $allowed_pricings)) {
+					$this->load->language('extension/sale/speedy');
+
+					if ($speedyData['price_gen_method'] == 'free') {
+						$delta = 0.0001;
+
+						if (abs($speedyShippingAmount - 0.0000) > $delta) {
+							$data['total'] = $this->currency->format($order_info['total'] - $speedyData['shipping_method_cost'], $order_info['currency_code'], $order_info['currency_value']) . ' (' . $this->currency->format($speedyData['shipping_method_cost'], $order_info['currency_code'], $order_info['currency_value']) . $this->language->get('due_on_delivery') . ')';
+						}
+					} else {
+						$data['total'] = $this->currency->format($order_info['total'] - $speedyData['shipping_method_cost'], $order_info['currency_code'], $order_info['currency_value']) . ' (' . $this->currency->format($speedyData['shipping_method_cost'], $order_info['currency_code'], $order_info['currency_value']) . $this->language->get('due_on_delivery') . ')';
+					}
+				}
+			}
+		}
+	}
+}
+			]]></add>
+		</operation>
+		<operation>
+			<search><![CDATA[$data['comment'] = nl2br($order_info['comment']);]]></search>
+			<add position="before"><![CDATA[
+if ($this->config->get('shipping_speedy_invoice_courier_sevice_as_text')) {
+	$speedyShouldSubstractFromTotal = false;
+
+	foreach ($totals as &$total) {
+		if ($total['code'] == 'shipping' && (strpos($total['title'], 'Speedy') !== false || strpos($total['title'], 'Спиди') !== false)) {
+			if (isset($speedyData) && !is_null($speedyData)) {
+				$allowed_pricings = array(
+					'calculator',
+					'free',
+					'calculator_fixed'
+				);
+
+				if (array_key_exists('price_gen_method', $speedyData) && isset($speedyData['price_gen_method']) && (isset($speedyData['cod']) && !$speedyData['cod'])) {
+					if (in_array($speedyData['price_gen_method'], $allowed_pricings)) {
+						$this->language->load('extension/sale/speedy');
+						$speedyShippingAmount = $total['value'];
+
+						if ($speedyData['price_gen_method'] == 'free') {
+							$delta = 0.0001;
+
+							if (abs($speedyShippingAmount - 0.0000) > $delta) {
+								foreach ($data['totals'] as &$data_total) {
+									if ($data_total['title'] == $total['title']) {
+										$data_total['title'] = $total['title'] . '<br />(' . $data_total['text'] . $this->language->get('due_on_delivery') . ')';
+										$data_total['text'] = $this->currency->format(0.00, $order_info['currency_code'], $order_info['currency_value']);
+										$speedyShouldSubstractFromTotal = true;
+									}
+								}
+							}
+						} else {
+							foreach ($data['totals'] as &$data_total) {
+								if ($data_total['title'] == $total['title']) {
+									$data_total['title'] = $total['title'] . '<br />(' . $data_total['text'] . $this->language->get('due_on_delivery') . ')';
+									$data_total['text'] = $this->currency->format(0.00, $order_info['currency_code'], $order_info['currency_value']);
+									$speedyShouldSubstractFromTotal = true;
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	if ($speedyShouldSubstractFromTotal) {
+		foreach ($totals as &$total) {
+			if ($total['code'] == 'total') {
+				foreach ($data['totals'] as &$data_total) {
+					if ($data_total['title'] == $total['title']) {
+						$total_value = $total['value'] - $speedyShippingAmount;
+						$data_total['text'] = $this->currency->format($total_value, $order_info['currency_code'], $order_info['currency_value']);
+					}
+				}
+			}
+		}
+	}
+}
+			]]></add>
+		</operation>
+		<operation>
+			<search><![CDATA[$total_data[] = array(]]></search>
+			<add position="after" offset="4"><![CDATA[
+if ($this->config->get('shipping_speedy_invoice_courier_sevice_as_text')) {
+	$shouldSubstractFromTotal = false;
+	$shippingAmount = 0;
+	$allowed_pricings = array(
+		'calculator',
+		'free',
+		'calculator_fixed'
+	);
+
+	foreach ($totals as &$total) {
+		if ($total['code'] == 'shipping' && (strpos($total['title'], 'Speedy') !== false || strpos($total['title'], 'Спиди') !== false)) {
+			$this->language->load('extension/sale/speedy');
+
+			$query = $this->db->query("SELECT data FROM " . DB_PREFIX . "speedy_order WHERE order_id = '" . (int)$order_id . "'");
+			$speedyData = null;
+
+			if (isset($query->row['data'])) {
+				$speedyData = unserialize($query->row['data']);
+			}
+
+			if ($speedyData) {
+				if (array_key_exists('price_gen_method', $speedyData) && isset($speedyData['price_gen_method']) &&(isset($speedyData['cod']) && !$speedyData['cod'])) {
+					if (in_array($speedyData['price_gen_method'], $allowed_pricings)) {
+						$shippingAmount = $total['value'];
+
+						if ($speedyData['price_gen_method'] == 'free') {
+							$delta = 0.0001;
+
+							if (abs($shippingAmount - 0.0000) > $delta) {
+								foreach ($total_data as &$data_total) {
+									if ($data_total['title'] == $total['title']) {
+										$data_total['title'] = $total['title'] . '<br />(' . $data_total['text'] . $this->language->get('due_on_delivery') . ')';
+										$data_total['text'] = $this->currency->format(0.00, $order_info['currency_code'], $order_info['currency_value']);
+										$shouldSubstractFromTotal = true;
+										continue;
+									}
+								}
+							}
+						} else {
+							foreach ($total_data as &$data_total) {
+								if ($data_total['title'] == $total['title']) {
+									$data_total['title'] = $total['title'] . '<br />(' . $data_total['text'] . $this->language->get('due_on_delivery') . ')';
+									$data_total['text'] = $this->currency->format(0.00, $order_info['currency_code'], $order_info['currency_value']);
+									$shouldSubstractFromTotal = true;
+									continue;
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	if ($shouldSubstractFromTotal) {
+		foreach ($totals as &$total) {
+			if ($total['code'] == 'total') {
+				foreach ($total_data as &$data_total) {
+					if ($data_total['title'] == $total['title']) {
+						$total_value = $total['value'] - $shippingAmount;
+						$data_total['text'] = $this->currency->format($total_value, $order_info['currency_code'], $order_info['currency_value']);
+					}
+				}
+			}
+		}
+	}
+}
+			]]></add>
+		</operation>
+		<operation>
+			<search index="1"><![CDATA[$data['order_status_id']]]></search>
+			<add position="before"><![CDATA[
+if ($this->config->get('shipping_speedy_invoice_courier_sevice_as_text')) {
+	$shouldSubstractFromTotal = false;
+	$shippingAmount = 0;
+	$order_id = $this->request->get['order_id'];
+	$allowed_pricings = array(
+		'calculator',
+		'free',
+		'calculator_fixed'
+	);
+
+	foreach ($order_totals as &$total) {
+		if ($total['code'] == 'shipping' && (strpos($total['title'], 'Speedy') !== false || strpos($total['title'], 'Спиди') !== false)) {
+			$this->language->load('extension/sale/speedy');
+
+			$query = $this->db->query("SELECT data FROM " . DB_PREFIX . "speedy_order WHERE order_id = '" . (int)$order_id . "'");
+			$speedyData = null;
+
+			if (isset($query->row['data'])) {
+				$speedyData = unserialize($query->row['data']);
+			}
+
+			if ($speedyData) {
+				if (array_key_exists('price_gen_method', $speedyData) && isset($speedyData['price_gen_method']) && (isset($speedyData['cod']) && !$speedyData['cod'])) {
+					if (in_array($speedyData['price_gen_method'], $allowed_pricings)) {
+						$shippingAmount = $total['value'];
+
+						if ($speedyData['price_gen_method'] == 'free') {
+							$delta = 0.0001;
+
+							if (abs($shippingAmount - 0.0000) > $delta) {
+								$total['title'] = $total['title'] . '<br />(' . $data_total['text'] . $this->language->get('due_on_delivery') . ')';
+								$total['text'] = $this->currency->format(0.00, $order_info['currency_code'], $order_info['currency_value']);
+								$total['value'] = number_format(0, 4);
+								$shouldSubstractFromTotal = true;
+							}
+						} else {
+							$total['title'] = $total['title'] . '<br />(' . $data_total['text'] . $this->language->get('due_on_delivery') . ')';
+							$total['text'] = $this->currency->format(0.00, $order_info['currency_code'], $order_info['currency_value']);
+							$total['value'] = number_format(0, 4);
+							$shouldSubstractFromTotal = true;
+						}
+					}
+				}
+			}
+		}
+	}
+
+	if ($shouldSubstractFromTotal) {
+		foreach ($order_totals as &$total) {
+			if ($total['code'] == 'total') {
+				$total['value'] = number_format($total['value'] - $shippingAmount, 4);
+				$total['text'] = $this->currency->format($total['value'], $order_info['currency_code'], $order_info['currency_value']);
+			}
+		}
+	}
+}
+			]]></add>
+		</operation>
+		<operation>
+			<search><![CDATA[$data['shipping_code'] = $order_info['shipping_code'];]]></search>
+			<add position="after"><![CDATA[
+if (strpos($order_info['shipping_code'], 'speedy.') !== false) {
+	$data['speedy_order_id_api'] = $this->request->get['order_id'];
+} else {
+	$data['speedy_order_id_api'] = 0;
+}
+			]]></add>
+		</operation>
+		<operation>
+			<search><![CDATA[$data['shipping_code'] = '';]]></search>
+			<add position="after"><![CDATA[
+$data['speedy_order_id_api'] = 0;
+			]]></add>
+		</operation>
+	</file>
+
+	<file path="admin/view/template/sale/order_list.twig">
+		<operation>
+			<search><![CDATA[<td class="text-right">{{ column_action }}</td>]]></search>
+			<add position="before"><![CDATA[
+			<td class="text-left">{{ column_order_address }}</td>
+			<td class="text-right">{{ column_bol }}</td>
+			]]></add>
+		</operation>
+		<operation>
+			<search><![CDATA[<div class="pull-right">]]></search>
+			<add position="after"><![CDATA[
+		{% if speedy_courier %}
+			<button type="submit" id="button-speedy-courier" form="form-order" formaction="{{ speedy_courier }}" data-toggle="tooltip" title="{{ button_speedy_courier }}" class="btn btn-info"><i class="fa fa-truck"></i> {{ button_speedy_courier }}</button>
+		{% endif %}
+			]]></add>
+		</operation>
+		<operation>
+			<search><![CDATA[<td class="text-left">{{ order.date_modified }}</td>]]></search>
+			<add position="after"><![CDATA[
+			<td class="text-left">
+				{{ order.bol_address }}
+			</td>
+			<td class="text-right">
+				{% for bol in order.bol %}
+					{% if order.bol %}
+						[ <a href="{{ bol.href }}" target="{{ bol.target }}">{{ bol.text }}</a> ]
+					{% endif %}
+				{% endfor %}
+			</td>
+			]]></add>
+		</operation>
+		<operation error="skip">
+			<search><![CDATA[<td class="text-center" colspan="8">{{ text_no_results }}</td>]]></search>
+			<add position="replace"><![CDATA[<td class="text-center" colspan="20">{{ text_no_results }}</td>]]></add>
+		</operation>
+	</file>
+
+	<file path="admin/model/customer/customer.php">
+		<operation error="skip">
+			<search><![CDATA[public function editCustomer($customer_id, $data) {]]></search>
+			<add position="after"><![CDATA[
+$this->db->query("DELETE FROM " . DB_PREFIX . "speedy_address WHERE customer_id = '" . (int)$customer_id . "'");
+			]]></add>
+		</operation>
+		<operation error="skip">
+			<search><![CDATA[public function deleteCustomer($customer_id) {]]></search>
+			<add position="after"><![CDATA[
+$this->db->query("DELETE FROM " . DB_PREFIX . "speedy_address WHERE customer_id = '" . (int)$customer_id . "'");
+			]]></add>
+		</operation>
+	</file>
+
+	<file path="catalog/controller/account/order.php">
+		<operation>
+			<search><![CDATA[$data['comment']]]></search>
+			<add position="before"><![CDATA[
+$this->load->model('extension/shipping/speedy');
+
+$this->load->language('extension/shipping/speedy');
+
+$data['speedy_order'] = $this->model_extension_shipping_speedy->getOrder($this->request->get['order_id']);
+
+if ($this->config->get('shipping_speedy_invoice_courier_sevice_as_text')) {
+	$shouldSubstractFromTotal = false;
+	$shippingAmount = 0;
+	$allowed_pricings = array(
+		'calculator',
+		'free',
+		'calculator_fixed'
+	);
+
+	foreach ($totals as &$total) {
+		if ($total['code'] == 'shipping' && (strpos($total['title'], 'Speedy') !== false || strpos($total['title'], 'РЎРїРёРґРё') !== false)) {
+			$query = $this->db->query("SELECT data FROM " . DB_PREFIX . "speedy_order WHERE order_id = '" . (int)$order_id . "'");
+			$speedyData = null;
+
+			if (isset($query->row['data'])) {
+				$speedyData = unserialize($query->row['data']);
+			}
+
+			if ($speedyData) {
+				if (array_key_exists('price_gen_method', $speedyData) && isset($speedyData['price_gen_method']) && (isset($speedyData['cod']) && !$speedyData['cod'])) {
+					if (in_array($speedyData['price_gen_method'], $allowed_pricings)) {
+						$shippingAmount = $total['value'];
+
+						if ($speedyData['price_gen_method'] == 'free') {
+							$delta = 0.0001;
+
+							if (abs($shippingAmount - 0.0000) > $delta) {
+								foreach ($data['totals'] as &$data_total) {
+									if ($data_total['title'] == $total['title']) {
+										$data_total['title'] = $total['title'].'<br />('.$data_total['text'].$this->language->get('due_on_delivery').')';
+										$data_total['text'] = $this->currency->format(0.00, $order_info['currency_code'], $order_info['currency_value']);
+										$shouldSubstractFromTotal = true;
+
+										continue;
+									}
+								}
+							}
+						} else {
+							foreach ($data['totals'] as &$data_total) {
+								if ($data_total['title'] == $total['title']) {
+									$data_total['title'] = $total['title'].'<br />('.$data_total['text'].$this->language->get('due_on_delivery').')';
+									$data_total['text'] = $this->currency->format(0.00, $order_info['currency_code'], $order_info['currency_value']);
+									$shouldSubstractFromTotal = true;
+
+									continue;
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	if ($shouldSubstractFromTotal) {
+		foreach ($totals as &$total) {
+			if ($total['code'] == 'total') {
+				foreach ($data['totals'] as &$data_total) {
+					if ($data_total['title'] == $total['title']) {
+						$total_value = $total['value'] - $shippingAmount;
+						$data_total['text'] = $this->currency->format($total_value, $order_info['currency_code'], $order_info['currency_value']);
+					}
+				}
+			}
+		}
+	}
+}
+			]]></add>
+		</operation>
+	</file>
+
+	<file path="catalog/view/theme/*/template/account/order_info.twig">
+		<operation>
+			<search><![CDATA[{{ shipping_method }}]]></search>
+			<add position="after"><![CDATA[
+			{% if speedy_order.bol_id %}
+				<br /><b>{{ text_bol_id }}</b><a href="https://www.speedy.bg/bg/track-shipment/?shipmentNumber={{ speedy_order.bol_id }}" target="_blank">{{ speedy_order.bol_id }}</a>
+			{% endif %}
+			]]></add>
+		</operation>
+	</file>
+
+	<file path="admin/view/template/sale/order_form.twig">
+		<operation error="skip">
+			<search><![CDATA[url: '{{ catalog }}index.php?route=api/shipping/methods&api_token={{ api_token }}&store_id=' + $('select[name=\'store_id\'] option:selected').val(),]]></search>
+			<add position="replace"><![CDATA[
+{% if speedy_order_id_api %}
+	url: '{{ catalog }}index.php?route=api/shipping/methods&api_token={{ api_token }}&store_id=' + $('select[name=\'store_id\'] option:selected').val() + '&speedy_order_id_api={{ speedy_order_id_api }}',
+{% else %}
+	url: '{{ catalog }}index.php?route=api/shipping/methods&api_token={{ api_token }}&store_id=' + $('select[name=\'store_id\'] option:selected').val(),
+{% endif %}
+			]]></add>
+		</operation>
+	</file>
+
+	<file path="admin/view/template/catalog/product_form.twig">
+		<operation error="skip">
+			<search><![CDATA[<label class="col-sm-2 control-label" for="input-length">{{ entry_dimension }}</label>]]></search>
+			<add position="before" offset="1"><![CDATA[
+			  <div class="form-group">
+				<label class="col-sm-2 control-label" for="input-quantity-dimensions">{{ entry_speedy_quantity_dimensions }}</label>
+				<div class="col-sm-10">
+					<div class="table-responsive">
+					  <table id="speedy_quantity_dimensions" class="table table-striped table-bordered table-hover">
+						<thead>
+						  <tr>
+							<td class="text-center">{{ text_speedy_package_dimentions }}</td>
+							<td class="text-center">{{ column_speedy_XS }}</td>
+							<td class="text-center">{{ column_speedy_S }}</td>
+							<td class="text-center">{{ column_speedy_M }}</td>
+							<td class="text-center">{{ column_speedy_L }}</td>
+							<td class="text-center">{{ column_speedy_XL }}</td>
+						  </tr>
+						</thead>
+						<tbody>
+							<tr>
+								<td class="text-center">
+									{{ text_speedy_max_packages }}
+								</td>
+								<td class="text-center">
+									<input type="text" name="speedy[quantity_dimentions][XS]" value="{{ speedy_quantity_dimensions.XS }}" class="form-control">
+								</td>
+								<td class="text-center">
+									<input type="text" name="speedy[quantity_dimentions][S]" value="{{ speedy_quantity_dimensions.S }}" class="form-control">
+								</td>
+								<td class="text-center">
+									<input type="text" name="speedy[quantity_dimentions][M]" value="{{ speedy_quantity_dimensions.M }}" class="form-control">
+								</td>
+								<td class="text-center">
+									<input type="text" name="speedy[quantity_dimentions][L]" value="{{ speedy_quantity_dimensions.L }}" class="form-control">
+								</td>
+								<td class="text-center">
+									<input type="text" name="speedy[quantity_dimentions][XL]" value="{{ speedy_quantity_dimensions.XL }}" class="form-control">
+								</td>
+							</tr>
+						</tbody>
+					  </table>
+					</div>
+				</div>
+			  </div>
+			]]></add>
+		</operation>
+	</file>
+
+	<file path="admin/controller/catalog/product.php">
+		<operation error="skip">
+			<search><![CDATA[$this->model_catalog_product->addProduct($this->request->post);]]></search>
+			<add position="replace"><![CDATA[
+			$product_id = $this->model_catalog_product->addProduct($this->request->post);
+			$this->load->model('extension/catalog/speedy');
+			$this->model_extension_catalog_speedy->editSpeedyDimentions($product_id, $this->request->post['speedy']);
+			]]></add>
+		</operation>
+		<operation error="skip">
+			<search><![CDATA[$this->model_catalog_product->editProduct($this->request->get['product_id'], $this->request->post);]]></search>
+			<add position="before"><![CDATA[
+			$this->load->model('extension/catalog/speedy');
+
+			$this->model_extension_catalog_speedy->editSpeedyDimentions($this->request->get['product_id'], $this->request->post['speedy']);
+			]]></add>
+		</operation>
+		<operation error="skip">
+			<search><![CDATA[$this->load->model('localisation/length_class');]]></search>
+			<add position="before"><![CDATA[
+		$this->load->model('extension/catalog/speedy');
+
+		$this->load->language('extension/catalog/speedy');
+
+		if (isset($this->request->get['product_id'])) {
+			$speedy_data = $this->model_extension_catalog_speedy->getSpeedyDimentions($this->request->get['product_id']);
+		}
+
+		if (isset($this->request->post['speedy']['quantity_dimentions'])) {
+			$data['speedy_quantity_dimensions'] = $this->request->post['speedy']['quantity_dimentions'];
+		} elseif (!empty($speedy_data)) {
+			$data['speedy_quantity_dimensions'] = $speedy_data['quantity_dimentions'];
+		} else {
+			$data['speedy_quantity_dimensions'] = array();
+		}
+			]]></add>
+		</operation>
+	</file>
+
+	<file path="admin/controller/startup/permission.php">
+		<operation error="skip">
+			<search><![CDATA['extension/report',]]></search>
+			<add position="before"><![CDATA['extension/sale',]]></add>
+		</operation>
+	</file>
+</modification>
