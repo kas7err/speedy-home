@@ -691,7 +691,6 @@ function speedySubmit() {
       }
     },
     error: function(xhr, ajaxOptions, thrownError) {
-      console.log(thrownError);
       $('#createBillOfLading').removeAttr('disabled');
       $('#createBillOfLading').on('click', function() {speedySubmit();});
       //alert(thrownError + "\r\n" + xhr.statusText + "\r\n" + xhr.responseText);
@@ -789,7 +788,7 @@ $('#speedy_count').keydown(function (e) {
 
 function addParcelsSize(old_rows, new_rows) {
   for (i = old_rows; i <= new_rows; i++) {
-    html  = '<tr id="parcel-size-row' + i + '">'; 
+    html  = '<tr id="parcel-size-row' + i + '">';
     html += '  <td class="text-left"><input type="text" name="parcels_size[' + i + '][width]" value="" placeholder="{{ entry_width }}" class="form-control" /></td>';
     html += '  <td class="text-left"><input type="text" name="parcels_size[' + i + '][height]" value="" placeholder="{{ entry_height }}" class="form-control" /></td>';
     html += '  <td class="text-left"><input type="text" name="parcels_size[' + i + '][depth]" value="" placeholder="{{ entry_depth }}" class="form-control" /></td>';
@@ -1020,7 +1019,7 @@ $(document).ready(function() {
           },
           error: function(xhr, ajaxOptions, thrownError) {
             //alert(thrownError + "\r\n" + xhr.statusText + "\r\n" + xhr.responseText);
-          } 
+          }
         });
       }
     },

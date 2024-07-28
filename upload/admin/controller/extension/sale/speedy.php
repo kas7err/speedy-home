@@ -1586,7 +1586,6 @@ class ControllerExtensionSaleSpeedy extends Controller {
 	}
 
 	protected function validateForm() {
-		// dd('validate');
 			if (!$this->user->hasPermission('modify', 'extension/sale/speedy')) {
 				$this->error['warning'] = $this->language->get('error_permission');
 			}
@@ -1688,7 +1687,6 @@ class ControllerExtensionSaleSpeedy extends Controller {
 	}
 
 	public function getQuarters() {
-        dd('calc');
 		$this->load->library('speedy');
 
 		if (isset($this->request->get['term'])) {

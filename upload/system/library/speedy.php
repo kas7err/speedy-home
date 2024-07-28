@@ -709,7 +709,6 @@ class Speedy {
 
 	public function calculate($data) {
 		require_once(DIR_SYSTEM . 'library/speedy-eps-lib/ver01/ParamCalculation.class.php');
-		// dd($data);
 
 		$this->error = '';
 		$resultCalculation = array();
