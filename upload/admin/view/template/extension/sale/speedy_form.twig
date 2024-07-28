@@ -207,6 +207,22 @@
               </select>
             </div>
           </div>
+          <div class="form-group">
+            <label class="col-sm-3 control-label" for="speedy_saturday_delivery">{{ entry_saturday_delivery }}
+               <a target="_blank" href="https://services.speedy.bg/api/speedy_modules_settings.html#saturdayDelivery"><i class="fa fa-question-circle"></i></a>
+            </label>
+            <div class="col-sm-9">
+              <select class="form-control" id="speedy_saturday_delivery" name="saturday_delivery">
+                {% if saturday_delivery %}
+                  <option value="1" selected="selected">{{ text_yes }}</option>
+                  <option value="0">{{ text_no }}</option>
+                {% else %}
+                  <option value="1">{{ text_yes }}</option>
+                  <option value="0" selected="selected">{{ text_no }}</option>
+                {% endif %}
+              </select>
+            </div>
+          </div>
           {% if abroad == false %}
             <div class="form-group" id="speedy_option_before_payment_container" {% if cod == false or cod_status == false %}style="display: none;"{% endif %}>
               <label class="col-sm-3 control-label" for="speedy_option_before_payment">{{ entry_options_before_payment }}</label>
@@ -257,6 +273,14 @@
               <input class="form-control" type="text" id="speedy_total_insurance" name="totalNoShipping" value="{{ totalNoShipping }}" />
             </div>
           </div>
+          {% if speedy_one_field_address %}
+          <div class="form-group" id="one_field_notice" {% if to_office %}  style="display: none;" {% endif %} >
+            <label class="col-sm-3 control-label" for="speedy_one_field_address"> {{ entry_one_field_address }} </label>
+            <div class="col-sm-9">
+              <p class="alert alert-info"> {{ text_one_field_notice }} </p>
+            </div>
+          </div>
+          {% endif %}
           {% if abroad == false %}
           <input type="hidden" id="speedy_country_id" name="country_id" value="{{ country_id }}" />
             <div class="form-group">
@@ -640,6 +664,7 @@ function speedySubmit() {
     data: post_data,
     dataType: 'json',
     success: function(data) {
+      console.log(data);
       if (data.error) {
         var confurm = 1;
 
@@ -666,6 +691,7 @@ function speedySubmit() {
       }
     },
     error: function(xhr, ajaxOptions, thrownError) {
+      console.log(thrownError);
       $('#createBillOfLading').removeAttr('disabled');
       $('#createBillOfLading').on('click', function() {speedySubmit();});
       //alert(thrownError + "\r\n" + xhr.statusText + "\r\n" + xhr.responseText);

@@ -822,6 +822,112 @@
               </select>
             </div>
           </div>
+          {% if clientrequirements.administrativeFeeAllowed %}
+
+              <div class="form-group">
+                <label class="col-sm-2 control-label" for="shipping_speedy_administrative_fee"> {{ entry_administration_fee }} <a target="_blank" href="https://services.speedy.bg/api/speedy_modules_settings.html#administrativeFee"><i class="fa fa-question-circle"></i></a></label>
+                <div class="col-sm-10">
+                  <select name="shipping_speedy_administrative_fee" id="shipping_speedy_administrative_fee" class="form-control">
+                    {% if shipping_speedy_administrative_fee %}
+                    <option value="1" selected="selected">{{ text_yes }} </option>
+                    <option value="0">{{ text_no }}</option>
+                    {% else  %}
+                    <option value="1">{{ text_yes }}</option>
+                    <option value="0" selected="selected">{{ text_no }}</option>
+                    {% endif %}
+                  </select>
+                </div>
+              </div>
+
+          {% endif %}
+
+
+          {% if clientrequirements.specialDeliveryRequirements %}
+            <div class="form-group">
+              <label class="col-sm-2 control-label" for="shipping_speedy_special_delivery_id"> {{ entry_special_delivery_id }} <a target="_blank" href="https://services.speedy.bg/api/speedy_modules_settings.html#specialDeliveryId"><i class="fa fa-question-circle"></i></a></label>
+              <div class="col-sm-10">
+                <select name="shipping_speedy_special_delivery_id" id="shipping_speedy_special_delivery_id" class="form-control">
+                  
+                  <option value="0">-- Изберете --</option>
+                  {% for item in clientrequirements.specialDeliveryRequirements.requirements %}
+                    <option value="{{ item.id }}"  {% if shipping_speedy_special_delivery_id == item.id %} selected="selected" {% endif %}  >
+                        {{ item.text }}
+                    </option>
+                  {% endfor %}
+
+                </select>
+              </div>
+            </div>
+          {% endif %}
+
+
+          <div class="form-group">
+            <label class="col-sm-2 control-label" for="shipping_speedy_saturday_delivery">{{ entry_saturday_delivery }}
+               <a target="_blank" href="https://services.speedy.bg/api/speedy_modules_settings.html#saturdayDelivery"><i class="fa fa-question-circle"></i></a>
+            </label>
+            <div class="col-sm-10">
+              <select name="shipping_speedy_saturday_delivery" id="shipping_speedy_saturday_delivery" class="form-control">
+                {% if shipping_speedy_saturday_delivery %}
+                  <option value="1" selected="selected">{{ text_yes }}</option>
+                  <option value="0">{{ text_no }}</option>
+                {% else %}
+                  <option value="1">{{ text_yes }}</option>
+                  <option value="0" selected="selected">{{ text_no }}</option>
+                {% endif %}
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="col-sm-2 control-label" for="shipping_speedy_one_field_address">{{ entry_one_field_address }}
+              <a target="_blank" href="https://services.speedy.bg/api/speedy_modules_settings.html#addressNoteField"><i class="fa fa-question-circle"></i></a>
+            </label>
+            <div class="col-sm-10">
+              <select name="shipping_speedy_one_field_address" id="shipping_speedy_one_field_address" class="form-control">
+              {% if shipping_speedy_one_field_address %}
+              <option value="1" selected="selected">{{ text_yes }}</option>
+              <option value="0">{{ text_no }}</option>
+              {% else %}
+              <option value="1">{{ text_yes }}</option>
+              <option value="0" selected="selected">{{ text_no }}</option>
+              {% endif %}
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="col-sm-2 control-label" for="shipping_speedy_include_shipping_price"> {{ entry_cod_with_shipping_price}} 
+            <a target="_blank" href="https://services.speedy.bg/api/speedy_modules_settings.html#includeShippingPrice"><i class="fa fa-question-circle"></i></a></label>
+            <div class="col-sm-10">
+              <select name="shipping_speedy_include_shipping_price" id="shipping_speedy_include_shipping_price" class="form-control">
+              {% if shipping_speedy_include_shipping_price %}
+              <option value="1" selected="selected">{{ text_yes }}</option>
+              <option value="0">{{ text_no }}</option>
+              {% else %}
+              <option value="1">{{ text_yes }}</option>
+              <option value="0" selected="selected">{{ text_no }}</option>
+              {% endif %}
+              </select>
+            </div>
+          </div>
+
+          {% if clientrequirements.id matches '/^\\d+$/' %}
+            <div class="form-group">
+              <label class="col-sm-2 control-label" for="shipping_speedy_card_payment_forbidden">{{ entry_card_payment_forbidden }}<a target="_blank" href="https://services.speedy.bg/api/speedy_modules_settings.html#cardAllow"><i class="fa fa-question-circle"></i></a></label>
+              <div class="col-sm-10">
+                <select name="shipping_speedy_card_payment_forbidden" id="shipping_speedy_card_payment_forbidden" class="form-control">
+                {% if shipping_speedy_card_payment_forbidden %}
+                <option value="1" selected="selected">{{ text_yes }}</option>
+                <option value="0">{{ text_no }}</option>
+                {% else %}
+                <option value="1">{{ text_yes }}</option>
+                <option value="0" selected="selected">{{ text_no }}</option>
+                {% endif %}
+                </select>
+              </div>
+            </div>
+          {% endif %}
+
           <div class="form-group">
             <label class="col-sm-2 control-label" for="speedy_status">{{ entry_status }}</label>
             <div class="col-sm-10">

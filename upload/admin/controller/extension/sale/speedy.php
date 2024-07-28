@@ -115,7 +115,6 @@ class ControllerExtensionSaleSpeedy extends Controller {
 				unset($speedy_order_data['fixed_time_cb']);
 
 				$speedy_data = array_merge($speedy_order_data, $this->request->post);
-
 				$bol = $this->speedy->createBillOfLading($speedy_data, $order_info);
 
 				if (!$this->speedy->getError() && $bol) {
@@ -665,7 +664,13 @@ class ControllerExtensionSaleSpeedy extends Controller {
 				$data['payer_type'] = $speedy_order_data['payer_type'];
 			} elseif (isset($speedy_order_data['shipping_method_cost'])) {
 				$data['payer_type'] = $this->speedy->getPayerType($this->request->get['order_id'], $speedy_order_data['shipping_method_cost']);
+			} elseif ($data['speedy_include_shipping_price']===1) {
+				$data['payer_type'] = 0;
 			} else {
+				$data['payer_type'] = 0;
+			}
+
+			if ($data['speedy_include_shipping_price']==1) {
 				$data['payer_type'] = 0;
 			}
 
@@ -756,6 +761,37 @@ class ControllerExtensionSaleSpeedy extends Controller {
 				$data['address_2'] = $speedy_order_data['address_2'];
 			} else {
 				$data['address_2'] = '';
+			}
+
+			// cod
+			if (isset($this->request->post['speedy_include_shipping_price'])) {
+				$data['speedy_include_shipping_price'] = $this->request->post['speedy_include_shipping_price'];
+			} elseif (isset($speedy_order_data['speedy_include_shipping_price'])) {
+				$data['speedy_include_shipping_price'] = $speedy_order_data['speedy_include_shipping_price'];
+			} else {
+				$data['speedy_include_shipping_price'] = $this->config->get('shipping_include_shipping_price');
+			}
+
+			if (isset($this->request->post['saturday_delivery'])) {
+				$data['saturday_delivery'] = $this->request->post['saturday_delivery'];
+			} elseif (isset($speedy_order_data['saturday_delivery'])) {
+				$data['saturday_delivery'] = $speedy_order_data['saturday_delivery'];
+			} else {
+				$data['saturday_delivery'] = $this->config->get('shipping_speedy_saturday_delivery');
+			}
+
+			if (isset($this->request->post['administration_fee'])) {
+				$data['administration_fee'] = $this->request->post['administration_fee'];
+			} elseif (isset($speedy_order_data['administration_fee'])) {
+				$data['administration_fee'] = $speedy_order_data['administration_fee'];
+			} else {
+				$data['administration_fee'] = $this->config->get('shipping_speedy_administrative_fee');
+			}
+
+			if (isset($speedy_order_data['speedy_one_field_address'])) {
+				$data['speedy_one_field_address'] = $speedy_order_data['speedy_one_field_address'];
+			} else {
+				$data['speedy_one_field_address'] = 0;
 			}
 
 			$data['offices'] = array();
@@ -1550,6 +1586,7 @@ class ControllerExtensionSaleSpeedy extends Controller {
 	}
 
 	protected function validateForm() {
+		// dd('validate');
 			if (!$this->user->hasPermission('modify', 'extension/sale/speedy')) {
 				$this->error['warning'] = $this->language->get('error_permission');
 			}
@@ -1651,6 +1688,7 @@ class ControllerExtensionSaleSpeedy extends Controller {
 	}
 
 	public function getQuarters() {
+        dd('calc');
 		$this->load->library('speedy');
 
 		if (isset($this->request->get['term'])) {

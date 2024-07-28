@@ -4,7 +4,7 @@ use Speedy\Curl as SpeedyCurl;
 use Speedy\Helper as Helper;
 
 class Speedy {
-	const NEW_API = false;
+	const NEW_API = true;
 	const BULGARIA = 100;
 	const OFFICE_TYPE_APT = 3;
 	const OFFICE_TYPE = 0;
@@ -615,6 +615,21 @@ class Speedy {
 		return $states;
 	}
 
+    public function getListContractReq() {
+		$return = array();
+
+		if (isset($this->resultLogin)) {
+			if (self::NEW_API) {
+				//$contractreqs = $this->speedyREST->getContractReqs();
+				$contractreqs = $this->speedyREST->getContractReqs();
+				$return = $contractreqs;
+			}
+		}
+
+		return $return;
+
+	}
+
 	public function getListContractClients() {
 		$return = array();
 
@@ -624,11 +639,23 @@ class Speedy {
 
 				foreach ($clients as $client) {
 					$address = $client['address'];
+
+					if (!empty($address['streetType']) && !empty($address['streetName'])) {
+							$street = $address['streetType'] . $address['streetName'] . ' ';
+					} else {
+							$street = '';
+					}
+
 					$address_string = $address['siteType']
 						. $address['siteName'] . ', '
-						. $address['streetType']
-						. $address['streetName'] . ' '
+						. $street
 						. $address['postCode'];
+
+					// $address_string = $address['siteType']
+					// 	. $address['siteName'] . ', '
+					// 	. $address['streetType']
+					// 	. $address['streetName'] . ' '
+					// 	. $address['postCode'];
 
 					$name = array();
 
@@ -682,6 +709,7 @@ class Speedy {
 
 	public function calculate($data) {
 		require_once(DIR_SYSTEM . 'library/speedy-eps-lib/ver01/ParamCalculation.class.php');
+		// dd($data);
 
 		$this->error = '';
 		$resultCalculation = array();
@@ -691,6 +719,31 @@ class Speedy {
 				if (!isset($data['to_office'])) {
 					$data['to_office'] = 0;
 				}
+
+				if (!isset($data["saturday_delivery"])) {
+					$data["saturday_delivery"] = $this->config->get('shipping_speedy_saturday_delivery');
+				}
+				if (!isset($data["administrative_fee"])) {
+						$data["administrative_fee"] = $this->config->get('shipping_speedy_administrative_fee');
+				}
+				if (!isset($data["speedy_card_payment_forbidden"])) {
+						$data["speedy_card_payment_forbidden"] = $this->config->get('shipping_speedy_card_payment_forbidden');
+				}
+				if (!isset($data["speedy_iban"])) {
+						$data["speedy_iban"] = $this->config->get('shipping_speedy_iban');
+				}
+				if (!isset($data["speedy_accountHolder"])) {
+						$data["speedy_accountHolder"] = $this->config->get('shipping_speedy_accountHolder');
+				}
+				if (!isset($data["speedy_include_shipping_price"])) {
+						$data["speedy_include_shipping_price"] = $this->config->get('shipping_speedy_include_shipping_price');
+				}
+				if (!isset($data["speedy_special_delivery_id"])) {
+						$data["speedy_special_delivery_id"] = $this->config->get('shipping_speedy_special_delivery_id');
+				}
+				$return['sender.speedy_card_payment_forbidden'] = $data['speedy_card_payment_forbidden'];
+				$return['sender.speedy_special_delivery_id'] = $data['speedy_special_delivery_id'];
+
 				$paramCalculation = new ParamCalculation();
 				$paramCalculation->setSenderId(doubleval($data['client_id']));
 				$paramCalculation->setBroughtToOffice($this->config->get('shipping_speedy_from_office') && $this->config->get('shipping_speedy_office_id'));
@@ -700,6 +753,10 @@ class Speedy {
 				$paramCalculation->setDocuments($this->config->get('shipping_speedy_documents'));
 				$paramCalculation->setPalletized(false);
 				$paramCalculation->setCheckTBCOfficeWorkDay(!(bool)$this->config->get('shipping_speedy_check_office_work_day'));
+				$paramCalculation->setSpecialDeliveryId($data['speedy_special_delivery_id']);
+				$paramCalculation->setHalfWorkDayDelivery((bool)$data["saturday_delivery"]);
+				$paramCalculation->setIncludeShippingPriceInCod((bool)$data["speedy_include_shipping_price"]);
+				$paramCalculation->setAdministrativeFee((bool)$data["administrative_fee"]);
 
 				if (!empty($data['parcels_size'])) {
 					$parcel_sizes = array();
@@ -762,6 +819,11 @@ class Speedy {
 					$payerType = $data['payer_type'];
 				} elseif ($this->config->get('shipping_speedy_pricing') == 'calculator' || $this->config->get('shipping_speedy_pricing') == 'calculator_fixed') {
 					if (isset($data['abroad']) && $data['abroad']) {
+						$payerType = ParamCalculation::PAYER_TYPE_SENDER;
+					} else {
+						$payerType = ParamCalculation::PAYER_TYPE_RECEIVER;
+					}
+					if (isset($data['speedy_include_shipping_price']) && $data['speedy_include_shipping_price']) {
 						$payerType = ParamCalculation::PAYER_TYPE_SENDER;
 					} else {
 						$payerType = ParamCalculation::PAYER_TYPE_RECEIVER;
@@ -950,6 +1012,7 @@ class Speedy {
 			$parcels[] = $arr;
 		}
 
+		$return['sender.speedy_special_delivery_id'] = $paramCalculation->getSpecialDeliveryId();
 		$return['sender.client_id'] = $paramCalculation->getSenderId();
 		$return['sender.office_id'] = $paramCalculation->getWillBringToOfficeId();
 
@@ -967,6 +1030,10 @@ class Speedy {
 
 		$return['service.auto_adjust_pickup_date'] = true;
 		$return['service.service_ids'] = $serviceIds;
+		$return['service.saturday_delivery'] = $paramCalculation->getHalfWorkDayDelivery();
+		$return['sender.speedy_administrative_fee'] = $paramCalculation->getAdministrativeFee();
+		$return['obpd.speedy_include_shipping_price'] = $paramCalculation->getIncludeShippingPriceInCod();
+		$return['cod.includeShippingPrice'] = $paramCalculation->getIncludeShippingPriceInCod();
 
 		$return['service.additional_services.fixed_time_delivery'] = $paramCalculation->getFixedTimeDelivery();
 
@@ -980,7 +1047,7 @@ class Speedy {
 
 		$return['service.additional_services.cod.include_shipping_price'] = $paramCalculation->getIncludeShippingPriceInCod();
 		$return['service.additional_services.declared_value.amount'] = $paramCalculation->getAmountInsuranceBase();
-		$return['service.additional_services.declared_value.fragile'] = (bool)$paramCalculation->isFragile(); 
+		$return['service.additional_services.declared_value.fragile'] = (bool)$paramCalculation->isFragile();
 
 		if ($paramCalculation->getOptionsBeforePayment()) {
 			$obp = $paramCalculation->getOptionsBeforePayment();
@@ -1273,12 +1340,22 @@ class Speedy {
 				$picking->setPackId(null);
 				$picking->setDocuments($this->config->get('shipping_speedy_documents'));
 				$picking->setPalletized(false);
+				$picking->setHalfWorkDayDelivery((bool)$data['saturday_delivery']);
 
 				if (($this->config->get('shipping_speedy_pricing') == 'free' && $this->config->get('shipping_speedy_free_shipping_total') <= $data['total']) || $this->config->get('shipping_speedy_pricing') == 'fixed' || $this->config->get('shipping_speedy_pricing') == 'table_rate') {
 					$payerType = ParamCalculation::PAYER_TYPE_SENDER;
 				} else {
 					$payerType = $data['payer_type'];
 				}
+
+
+				$data['speedy_return_voucher_period'] = $this->config->get('shipping_speedy_return_voucher_period');
+				$data['speedy_special_delivery_id'] = $this->config->get('shipping_speedy_special_delivery_id');
+				$data['speedy_administrative_fee'] = $this->config->get('shipping_speedy_administrative_fee');
+				$data['speedy_include_shipping_price'] = $this->config->get('shipping_speedy_include_shipping_price');
+				$data['speedy_card_payment_forbidden'] = $this->config->get('shipping_speedy_card_payment_forbidden');
+				$data['speedy_iban'] = $this->config->get('shipping_speedy_iban');
+				$data['speedy_accountHolder'] = $this->config->get('shipping_speedy_accountHolder');
 
 				if ($data['insurance']) {
 					if ($data['fragile']) {
@@ -1418,6 +1495,13 @@ class Speedy {
 			$receiver_phone_number = '';
 		}
 
+		$return['sender.speedy_special_delivery_id'] = $data['speedy_special_delivery_id'];
+		$return['sender.speedy_administrative_fee'] = boolval($data['speedy_administrative_fee']);
+		$return['sender.speedy_include_shipping_price'] = boolval($data['speedy_include_shipping_price']);
+		$return['sender.speedy_card_payment_forbidden'] = boolval($data['speedy_card_payment_forbidden']);
+		$return['sender.speedy_iban'] = $data['speedy_iban'];
+		$return['sender.speedy_accountHolder'] = $data['speedy_accountHolder'];
+
 		$return['sender.client_id'] = $picking->getSender()->getClientId();
 		$return['sender.contact_name'] = $picking->getSender()->getContactName();
 		$return['sender.office_id'] = $picking->getWillBringToOfficeId();
@@ -1458,6 +1542,8 @@ class Speedy {
 		$return['service.additional_services.returns.return_receipt.enabled'] = (bool)$picking->isBackReceiptRequest();
 		$return['service.additional_services.returns.rod.enabled'] = (bool)$picking->isBackDocumentsRequest();
 
+		$return['service.additional_services.specialDeliveryId'] = $data['speedy_special_delivery_id'];
+
 		if ($picking->getReturnVoucher()) {
 			$return['service.additional_services.returns.return_voucher.service_id'] = $picking->getReturnVoucher()->getServiceTypeId();
 
@@ -1482,6 +1568,14 @@ class Speedy {
 			$return['service.additional_services.obp_details.option'] = SpeedyCurl::OBP_VALS['TEST'];
 		}
 
+		$return['service.additional_services.obpd.speedy_include_shipping_price'] = boolval($data['speedy_include_shipping_price']);
+
+		$return['service.additional_services.obpd.speedy_include_shipping_price'] = boolval($data['speedy_include_shipping_price']);
+
+		$return['service.additional_services.obpd.speedy_card_payment_forbidden'] = boolval($data['speedy_card_payment_forbidden']);
+
+		$return['service.additional_services.sender.speedy_card_payment_forbidden'] = boolval($data['speedy_card_payment_forbidden']);
+
 		$return['service.additional_services.obp_details.return_shipment_service_id'] = $picking->getOptionsBeforePayment()->getReturnServiceTypeId();
 
 		if ($picking->getOptionsBeforePayment()->getReturnPayerType() == 0) {
@@ -1494,6 +1588,8 @@ class Speedy {
 
 		$return['service.service_id'] = $picking->getServiceTypeId();
 		$return['service.deferred_days'] = $picking->getDeferredDeliveryWorkDays();
+		$return['service.saturday_delivery'] = $picking->getHalfWorkDayDelivery();
+		$return['obpd.speedy_include_shipping_price'] = $picking->getIncludeShippingPriceInCod();
 
 		if (is_numeric($data['taking_date'])) {
 			$return['service.pickup_date'] = date('Y-m-d', $data['taking_date']);
@@ -2048,7 +2144,7 @@ class Speedy {
 			'calculator_fixed'
 		);
 
-		if ($this->config->get('shipping_speedy_invoice_courier_sevice_as_text') && 
+		if ($this->config->get('shipping_speedy_invoice_courier_sevice_as_text') &&
 			in_array($this->config->get('shipping_speedy_pricing'), $allowed_pricings) &&
 			(isset($data['cod']) && !$data['cod'])
 		) {
@@ -2057,6 +2153,10 @@ class Speedy {
 
 		// International Shipping
 		if (isset($data['abroad']) && $data['abroad']) {
+			$payerType = ParamCalculation::PAYER_TYPE_SENDER;
+		}
+
+		if (isset($data['speedy_include_shipping_price']) && $data['speedy_include_shipping_price']) {
 			$payerType = ParamCalculation::PAYER_TYPE_SENDER;
 		}
 

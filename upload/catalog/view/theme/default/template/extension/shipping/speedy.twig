@@ -24,6 +24,9 @@
           <label class="col-sm-2 control-label">{{ entry_shipping_to }}</label>
           <div class="col-sm-8">
             {% if option_before_payment == 'no_option' or ignore_obp %}
+                {% if (speedy_special_delivery_id == 1 or speedy_special_delivery_id == 3 or speedy_special_delivery_id == 3 or speedy_special_delivery_id == 4) %}
+
+                {% else %}
                 <label class="radio-inline">
                   <input type="radio" id="speedy_shipping_to_apt" data-is-apt="1" name="to_office" value="1" {% if to_office != false and is_apt != false %}checked="checked"{% endif %} />
                   {% if option_before_payment == 'test' %}
@@ -34,6 +37,7 @@
                     {{ text_to_apt }}
                   {% endif %}
                 </label>
+                {% endif %}
             {% endif %}
             <label class="radio-inline">
               <input type="radio" id="speedy_shipping_to_office" data-is-apt="0" name="to_office" value="1" {% if to_office != false and is_apt == false %}checked="checked"{% endif %} />
@@ -186,10 +190,32 @@
       </div>
     </div>
   </div>
+
+  <div id="saturdaydelivery" style="display:none!important;">
+      <div class="form-group">
+          <label class="col-sm-2 control-label">{{ entry_saturday_delivery }} </label>
+          <div class="col-sm-10">
+              <label class="radio-inline">
+                  <input type="radio" id="speedy_saturdaydelivery_yes" name="speedy_saturday_delivery" 
+                  {% if speedy_saturday_delivery == 1 %} checked="checked"{% endif %} value="1" />
+                  {{ text_yes }}
+              </label>
+              <label class="radio-inline">
+                  <input type="radio" id="speedy_saturdaydelivery_no" name="speedy_saturday_delivery"
+                  {% if speedy_saturday_delivery == 0 %}checked="checked"{% endif %} value="0"  />
+                  {{ text_no }}
+              </label>
+          </div>
+      </div>
+  </div>
+  
   <div class="form-group" id="to_office" {% if offices == false %}style="display:none;" {% endif %}>
     <label class="col-sm-2 control-label">{{ entry_shipping_to }}</label>
     <div class="col-sm-8">
       {% if option_before_payment == 'no_option' or ignore_obp %}
+          {% if speedy_special_delivery_id == 1 or speedy_special_delivery_id == 3 or speedy_special_delivery_id == 3 or speedy_special_delivery_id == 4 %}
+
+          {% else %}
           <label class="radio-inline">
             <input type="radio" id="speedy_shipping_to_apt" data-is-apt="1" name="to_office" value="1" {% if to_office != false and is_apt != false %}checked="checked"{% endif %} />
             {% if option_before_payment == 'test' %}
@@ -200,6 +226,7 @@
               {{ text_to_apt }}
             {% endif %}
           </label>
+          {% endif %}
       {% endif %}
       <label class="radio-inline">
         <input type="radio" id="speedy_shipping_to_office" data-is-apt="0" name="to_office" value="1" {% if to_office != false and is_apt == false %} checked="checked"{% endif %} />
@@ -360,7 +387,16 @@
     <input type="hidden" id="abroad" name="abroad" value="{{ abroad }}" />
     <input type="hidden" id="validate" name="validate" value="0" />
     <input type="hidden" name="country_address_nomenclature" value="{{ country_address_nomenclature }}" />
+    <input type="hidden" name="speedy_one_field_address" value="{{ speedy_one_field_address }}" />
 </form>
+{% if speedy_one_field_address %}
+<style>
+#speedy_quarter_container, #speedy_street_container, #speedy_block_no_container {
+  display: none!important;
+}
+</style>
+{% endif %}
+
 <script type="text/javascript">//<!--
   var isInvalidSpeedyService = false;
   {% if session_speedy.quote.speedy is not empty %}

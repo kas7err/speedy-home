@@ -286,6 +286,14 @@ class ParamCalculation {
     protected $_specialDeliveryId;
 
     /**
+     * Administrative Fee boolean
+     * MANDATORY: NO
+     * @var signed 32-bit integer
+     * @since 2.3.0
+     */
+    protected $_administrativeFee;
+
+    /**
      * Receiver's country ID
      * MANDATORY: NO. Defaults to Bulgaria when not specified
      * @var integer Signed 64-bit
@@ -865,6 +873,22 @@ class ParamCalculation {
     }
 
     /**
+     * Gets the administrative Fee
+     * @return signed 32-bit integer special delivery id
+     */
+    public function getAdministrativeFee() {
+        return $this->_administrativeFee;
+    }
+
+    /**
+     * Sets the administrative Fee
+     * @param signed 32-bit integer $specialDeliveryId Special delivery id
+     */
+    public function setAdministrativeFee($administrativeFee) {
+        $this->_administrativeFee = $administrativeFee;
+    }
+
+    /**
      * Get receiver country id.
      * @return integer signed 64-bit Receiver country id
      */
@@ -1071,6 +1095,7 @@ class ParamCalculation {
         $stdClass->payerRefInsuranceId      = $this->_payerRefInsuranceId;
         $stdClass->payerRefPackingsId       = $this->_payerRefPackingsId;
         $stdClass->specialDeliveryId        = $this->_specialDeliveryId;
+        $stdClass->administrativeFee        = $this->_administrativeFee;
         $stdClass->receiverCountryId        = $this->_receiverCountryId;
         $stdClass->receiverPostCode         = $this->_receiverPostCode;
         $stdClass->senderCountryId          = $this->_senderCountryId;

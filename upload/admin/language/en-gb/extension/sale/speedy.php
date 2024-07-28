@@ -44,6 +44,7 @@ $_['text_client_id']               = 'ID: %s, Name: %s, Address: %s';
 $_['text_create_bol']              = 'Prepare a Pack';
 $_['text_pickup_from_office']      = 'Pickup from office';
 $_['text_delivery_to_address']     = 'Delivery to address';
+$_['text_one_field_notice']       = 'The client has given his address only in the address note field. It is recommended for you to select the specific address data in the corresponding fields. Otherwise, the address will be moved in address note, which might lead to change in the courier service price.';
 
 // Button
 $_['button_create']                = 'Create';
@@ -105,6 +106,10 @@ $_['entry_country']                = 'Country:';
 $_['entry_state']                  = 'State:';
 $_['entry_address_1']              = 'Address 1:';
 $_['entry_address_2']              = 'Address 2:';
+$_['entry_administration_fee']     = 'Administrative Fee:';
+$_['entry_special_delivery_id']    = 'Additional service requirements:';
+$_['entry_saturday_delivery']      = 'Saturday delivery:';
+$_['entry_one_field_address']      = 'Recipient address in one field only:';
 
 // Help
 $_['help_fragile']                 = 'It can be select if the declared value is Yes.';

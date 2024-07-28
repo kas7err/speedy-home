@@ -13,6 +13,10 @@ class Curl
 
     CONST CALCULATION_URL = self::BASE_URL . '/calculate';
 
+    //services
+    CONST SERVICES_URL = self::BASE_URL . '/services';
+    CONST SERVICES_DESTINATION_URL = self::BASE_URL . '/services/destination';
+
     // Countries
     CONST COUNTRY_URL = self::BASE_URL . '/location/country';
     CONST GET_ALL_COUNTRIES_URL = self::COUNTRY_URL . '/csv';
@@ -53,6 +57,9 @@ class Curl
     CONST GET_CONTRACT_CLIENTS_URL = self::BASE_URL . '/client/contract';
     CONST GET_CLIENT_URL = self::BASE_URL . '/client/'; // URL . {clientSystemId}
 
+    // Client
+    CONST GET_CONTRACT_REQS_URL = self::BASE_URL . '/client/contract/info';
+
     // Shipment
     CONST SHIPMENT_URL = self::BASE_URL . '/shipment';
     CONST CREATE_SHIPMENT_URL = self::SHIPMENT_URL;
@@ -64,7 +71,11 @@ class Curl
     CONST TRACK_URL = self::BASE_URL . '/track';
 
     // Pickup Terms
+    CONST PICKUP_URL = self::BASE_URL . '/pickup';
     CONST PICKUP_TERMS_URL = self::BASE_URL . '/pickup/terms';
+    CONST VISIT_END_TIME = 'visitEndTime';
+    CONST EXPLICIT_SHIPMENT_ID_LIST = 'explicitShipmentIdList';
+    CONST PHONE_NUMBER = 'phoneNumber';
 
     // Print
     CONST PRINT_URL = self::BASE_URL . '/print';
@@ -96,6 +107,7 @@ class Curl
     CONST SATURDAY_DELIVERY = 'saturdayDelivery';
     CONST ADDITIONAL_SERVICES = 'additionalServices';
     CONST FIXED_TIME_DELIVERY = 'fixedTimeDelivery';
+    CONST ADDITIONAL_WAYBILL_SENDER_COPY = 'additionalWaybillSenderCopy';
     CONST SPECIAL_DELIVERY_ID = 'specialDeliveryId';
     CONST DELIVERY_TO_FLOOR = 'deliveryToFloor';
     CONST COD = 'cod';
@@ -104,6 +116,7 @@ class Curl
     CONST PROCESSING_TYPE = 'processingType';
     CONST PAYOUT_TO_THIRD_PARTY = 'payoutToThirdParty';
     CONST INCLUDE_SHIPPING_PRICE = 'includeShippingPrice';
+    CONST CARD_PAYMENT_FORBIDDEN = 'cardPaymentForbidden';
     CONST OBP_DETAILS = 'obpDetails';
     CONST OPTION = 'option';
     CONST RETURN_SHIPMENT_SERVICE_ID = 'returnShipmentServiceId';
@@ -126,6 +139,7 @@ class Curl
     CONST PALLETS = 'pallets';
     CONST RETURN_VOUCHER = 'returnVoucher';
     CONST PAYER = 'payer';
+    CONST VALIDITYPERIOD = 'validityPeriod';
     CONST CONTENT = 'content';
     CONST TOTAL_WEIGHT = 'totalWeight';
     CONST DOCUMENTS = 'documents';
@@ -142,10 +156,14 @@ class Curl
     CONST HEIGHT = 'height';
     CONST PAYMENT = 'payment';
     CONST COURIER_SERVICE_PAYER = 'courierServicePayer';
+    CONST ADMINISTRATIVE_FEE = 'administrativeFee';
     CONST DECLARED_VALUE_PAYER = 'declaredValuePayer';
     CONST PACKAGE_PAYER = 'packagePayer';
     CONST THIRD_PARTY_CLIENT_ID = 'thirdPartyClientId';
     CONST DISCOUNT_CARD_ID = 'discountCardId';
+    CONST SENDER_BANK_ACCOUNT = 'senderBankAccount';
+    CONST IBAN = 'iban';
+    CONST ACCOUNT_HOLDER = 'accountHolder';
     CONST CONTRACT_ID = 'contractId';
     CONST CARD_ID = 'cardId';
     CONST NAME = 'name';
@@ -253,6 +271,11 @@ class Curl
     CONST PRINT_FORMAT_VALS = array('PDF' => 'pdf', 'ZPL' => 'zpl');
 
     /**
+    * @keys NONE|ON_SAME_PAGE|ON_SINGLE_PAGE
+    */
+    CONST ADDITIONAL_WAYBILL_SENDER_COPY_VALS = array('NONE' => 'NONE', 'ON_SAME_PAGE' => 'ON_SAME_PAGE', 'ON_SINGLE_PAGE' => 'ON_SINGLE_PAGE');
+
+    /**
     * @keys CODE128|EAN13|EAN8|UPCA|UPCE
     */
     CONST BARCODE_FORMAT_VALS = array('CODE128' => 'CODE128', 'EAN13' => 'EAN13', 'EAN8' => 'EAN8', 'UPCA' => 'UPCA', 'UPCE' => 'UPCE');
@@ -335,6 +358,19 @@ class Curl
         return Helper::get($terms, 'cutoffs');
     }
 
+    public function pickup($data)
+    {
+        $params = array(
+            self::VISIT_END_TIME                => Helper::get($data, 'visit_end_time'),
+            self::EXPLICIT_SHIPMENT_ID_LIST     => Helper::get($data, 'explicit_shipment_id_list'),
+            self::PHONE_NUMBER                  => $this->_shipmentPhoneNumber($data),
+            self::CONTACT_NAME                  => Helper::get($data, 'contact_name'),
+        );
+        $response = $this->send(self::PICKUP_URL, $params);
+        $this->addError('PickupResponse', $response);
+        return $response;
+    }
+
     public function calculate($data)
     {
         $params = array(
@@ -355,7 +391,7 @@ class Curl
                 self::AUTO_ADJUST_PICKUP_DATE => Helper::get($data, 'service.auto_adjust_pickup_date'),
                 self::SERVICE_IDS             => Helper::get($data, 'service.service_ids', array()),
                 // self::DEFERRED_DAYS           => '',
-                // self::SATURDAY_DELIVERY       => '',
+                self::SATURDAY_DELIVERY       => Helper::get($data, 'service.saturday_delivery'),
                 self::ADDITIONAL_SERVICES     => $this->_shipmentAdditionalServices($data, 'service.additional_services.')
             ),
             self::CONTENT => array(
@@ -375,6 +411,49 @@ class Curl
         $this->addError('CalculateResponse', $calculations);
 
         return Helper::get($calculations, 'calculations', array());
+    }
+
+    public function listServices()
+    {
+        $services = $this->send(self::SERVICES_URL);
+        $services = $this->translate($services);
+        $this->addError('ServicesResponse', $services);
+
+        return Helper::get($services, 'services', array());
+    }
+
+    public function destinationServices($receiver, $sender)
+    {
+        $params = array(
+            self::SENDER => $this->getCalculationSender($sender),
+            self::RECIPIENT => $this->getCalculationRecipient($receiver),
+        );
+
+        $params = $this->clean($params);
+
+        $services = $this->send(self::SERVICES_DESTINATION_URL, $params);
+
+        $this->addError('DestinationServicesResponse', $services);
+
+        return Helper::get($services, 'services', array());
+    }
+
+    public function getCalculationSender($sender)
+    {
+        $params = array(
+            self::CLIENT_ID => Helper::get($sender, 'clientId'),
+            self::DROP_OFF_OFFICE_ID => Helper::get($sender, 'officeId'),
+        );
+
+        if (!$params[self::CLIENT_ID]) {
+            $params[self::PRIVATE_PERSON] = Helper::get($sender, 'privatePerson');
+
+            if (!$params[self::DROP_OFF_OFFICE_ID]) {
+                $params[self::ADDRESS_LOCATION] = $this->_addressLocation(Helper::get($sender, 'address'));
+            }
+        }
+
+        return $params;
     }
 
     public function createShipment($data)
@@ -489,6 +568,7 @@ class Curl
             // self::PRINTER_NAME => Helper::get($data, 'printer_name'),
             // self::DPI          => Helper::get($data, 'dpi'),
             self::PARCELS     => $parcels,
+            self::ADDITIONAL_WAYBILL_SENDER_COPY => Helper::get($data, 'additional_waybill_sender_copy'),
         );
 
         $responce = $this->send(self::PRINT_URL, $params);
@@ -555,6 +635,35 @@ class Curl
         $this->addError('GetContractClientsResponse', $clients);
 
         return Helper::get($clients, 'clients', array());
+    }
+
+
+    public function getContractReqs()
+    {
+        $url = self::GET_CONTRACT_REQS_URL . '?username=' . $this->_username . '&password=' . $this->_password;
+
+        $ch = curl_init($url);
+
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_HEADER, 0);
+
+        $response = curl_exec($ch);
+
+        if (curl_errno($ch)) {
+            return false;
+        }
+
+        curl_close($ch);
+
+        $data = json_decode($response, true);
+
+        //if ($data === null || !isset($data['specialDeliveryRequirements']) || !isset($data['specialDeliveryRequirements'])) {
+          //  return false;
+        //}
+
+        $requirementsArray = $data;
+
+        return $requirementsArray;
     }
 
     public function getClient($clientSystemId)
@@ -746,7 +855,12 @@ class Curl
             self::DISCOUNT_CARD_ID      => array(
                 self::CONTRACT_ID => Helper::get($data, $prefix . 'discount_card_id.contract_id'),
                 self::CARD_ID     => Helper::get($data, $prefix . 'discount_card_id.card_id'),
-            )
+            ),
+            self::SENDER_BANK_ACCOUNT      => array(
+                self::IBAN => Helper::get($data, $prefix . 'sender.speedy_iban'),
+                self::ACCOUNT_HOLDER     => Helper::get($data, $prefix . 'sender.speedy_accountHolder'),
+            ),
+            self::ADMINISTRATIVE_FEE => Helper::get($data, 'sender.speedy_administrative_fee')
         );
     }
 
@@ -785,6 +899,7 @@ class Curl
     {
         return array(
             self::FIXED_TIME_DELIVERY => Helper::get($data, $prefix . 'fixed_time_delivery'),
+            self::SPECIAL_DELIVERY_ID => Helper::get($data, 'sender.speedy_special_delivery_id'),
             // self::SPECIAL_DELIVERY_ID => '',
             // self::DELIVERY_TO_FLOOR   => '',
             self::COD                 => array(
@@ -793,6 +908,7 @@ class Curl
                 self::PROCESSING_TYPE        => Helper::get($data, $prefix . 'cod.processing_type'),
                 // self::PAYOUT_TO_THIRD_PARTY  => '',
                 self::INCLUDE_SHIPPING_PRICE => Helper::get($data, $prefix . 'cod.include_shipping_price'),
+                self::CARD_PAYMENT_FORBIDDEN => Helper::get($data, $prefix . 'sender.speedy_card_payment_forbidden'),
             ),
             self::OBP_DETAILS            => array(
                 self::OPTION                     => Helper::get($data, $prefix . 'obp_details.option'),
@@ -835,6 +951,7 @@ class Curl
                 self::RETURN_VOUCHER => array(
                     self::SERVICE_ID => Helper::get($data, $prefix . 'returns.return_voucher.service_id'),
                     self::PAYER      => Helper::get($data, $prefix . 'returns.return_voucher.payer'),
+                    self::VALIDITYPERIOD      => Helper::get($data, $prefix . 'returns.return_voucher.period'),
                 ),
             )
         );
@@ -931,6 +1048,7 @@ class Curl
                 if (is_array($value)) {
                     $haystack[$key] = $this->translate($haystack[$key]);
                 } elseif (!empty(self::EN_FIELDS[$key])) {
+                // } elseif (array_key_exists($key, self::EN_FIELDS)) {
                     $haystack[self::EN_FIELDS[$key]] = $value;
                 }
             }

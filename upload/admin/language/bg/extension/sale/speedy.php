@@ -104,6 +104,10 @@ $_['entry_country']                = 'Държава:';
 $_['entry_state']                  = 'Щат:';
 $_['entry_address_1']              = 'Адрес 1:';
 $_['entry_address_2']              = 'Адрес 2:';
+$_['entry_saturday_delivery']      = 'Доставка в събота или празник:';
+$_['entry_administration_fee']     = 'Административна такса:';
+$_['entry_special_delivery_id']    = 'Допълнителни изисквания при обслужване:';
+$_['entry_one_field_address']    = 'Адрес на получателя само в едно поле:';
 
 // Help
 $_['help_fragile']                 = 'Може да бъде избрано, само ако е избрана и обявена стойност.';

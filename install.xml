@@ -1001,7 +1001,7 @@ if ($this->config->get('shipping_speedy_invoice_courier_sevice_as_text')) {
 
 	<file path="admin/controller/startup/permission.php">
 		<operation error="skip">
-			<search><![CDATA['extension/report',]]></search>
+			<search><![CDATA['extension/report']]></search>
 			<add position="before"><![CDATA['extension/sale',]]></add>
 		</operation>
 	</file>
